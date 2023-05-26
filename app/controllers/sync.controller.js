@@ -500,9 +500,9 @@ exports.leaguemates = async (app) => {
                 }
             }
 
-            for (const pick of traded_picks.filter(x => x.owner_id === rosters[i].roster_id)) {
+            for (const pick of traded_picks.filter(x => x.owner_id === rosters[i].roster_id && parseInt(x.season) >= draft_season)) {
                 const original_user = users.find(u => rosters.find(r => r.roster_id === pick.roster_id)?.owner_id === u.user_id)
-                return original_picks[rosters[i].roster_id].push({
+                original_picks[rosters[i].roster_id].push({
                     season: parseInt(pick.season),
                     round: pick.round,
                     roster_id: pick.roster_id,
