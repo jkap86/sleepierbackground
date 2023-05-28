@@ -36,12 +36,12 @@ db.leagues.belongsToMany(db.users, { through: { model: 'userLeagues' } })
 db.leagues.hasMany(db.trades)
 db.trades.belongsTo(db.leagues)
 
-db.users.belongsToMany(db.trades, { through: { model: 'userTrades' } })
-db.trades.belongsToMany(db.users, { through: { model: 'userTrades' } })
-
-db.users.belongsToMany(db.users, { as: 'leaguemates', through: 'userLeaguemates' })
+db.users.belongsToMany(db.trades, { through: { model: 'userTrades', onDelete: 'CASCADE' } })
+db.trades.belongsToMany(db.users, { through: { model: 'userTrades', onDelete: 'CASCADE' } })
 
 /*
+db.users.belongsToMany(db.users, { as: 'leaguemates', through: 'userLeaguemates' })
+
 db.users.belongsToMany(db.trades, { through: db.lmTrades, as: 'trades1' })
 db.trades.belongsToMany(db.users, { through: db.lmTrades, as: 'users1', indexes: [{ using: 'BRIN', fields: ['userUserId'] }] })
 

@@ -123,6 +123,7 @@ exports.trades = async (app) => {
 
                 try {
                     transactions_league.data
+                        .filter(t => t.type === 'trade' && t.status_updated < new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
                         .map(transaction => {
                             const draft_order = league.dataValues.drafts.find(d => d.draft_order && d.status !== 'complete')?.draft_order
 
@@ -187,27 +188,27 @@ exports.trades = async (app) => {
                             })
 
 
-                            if (transaction.type === 'trade') {
-                                trades_users.push(...managers.filter(m => parseInt(m) > 0).map(m => {
-                                    return {
-                                        userUserId: m,
-                                        tradeTransactionId: transaction.transaction_id
-                                    }
-                                }))
-                                trades_league.push({
-                                    transaction_id: transaction.transaction_id,
-                                    leagueLeagueId: league.dataValues.league_id,
-                                    status_updated: transaction.status_updated,
-                                    rosters: league.dataValues.rosters,
-                                    managers: managers,
-                                    players: [...Object.keys(adds), ...draft_picks.map(pick => `${pick.season} ${pick.round}.${pick.order}`)],
-                                    adds: adds,
-                                    drops: drops,
-                                    draft_picks: draft_picks,
-                                    drafts: league.dataValues.drafts,
-                                    price_check: pricecheck
-                                })
-                            }
+
+                            trades_users.push(...managers.filter(m => parseInt(m) > 0).map(m => {
+                                return {
+                                    userUserId: m,
+                                    tradeTransactionId: transaction.transaction_id
+                                }
+                            }))
+                            trades_league.push({
+                                transaction_id: transaction.transaction_id,
+                                leagueLeagueId: league.dataValues.league_id,
+                                status_updated: transaction.status_updated,
+                                rosters: league.dataValues.rosters,
+                                managers: managers,
+                                players: [...Object.keys(adds), ...draft_picks.map(pick => `${pick.season} ${pick.round}.${pick.order}`)],
+                                adds: adds,
+                                drops: drops,
+                                draft_picks: draft_picks,
+                                drafts: league.dataValues.drafts,
+                                price_check: pricecheck
+                            })
+
 
                         })
 
@@ -222,6 +223,14 @@ exports.trades = async (app) => {
         try {
             await Trade.bulkCreate(trades_league, { ignoreDuplicates: true })
             await db.sequelize.model('userTrades').bulkCreate(trades_users, { ignoreDuplicates: true })
+            const trades_deleted = await Trade.destroy({
+                where: {
+                    status_updated: {
+                        [Op.lt]: new Date().getTime() - 30 * 24 * 60 * 60 * 1000
+                    }
+                }
+            })
+            console.log(`${trades_deleted} Trades deleted...`)
         } catch (error) {
             console.log(error)
         }
@@ -336,7 +345,6 @@ exports.leaguemates = async (app) => {
         if (leagues_to_add.length > 0 || leagues_to_update.length > 0) {
             const users = []
             const userLeagueData = []
-            const userLeaguemateData = []
 
             leagues_batch.map(league => {
                 return (league.rosters
@@ -357,19 +365,6 @@ exports.leaguemates = async (app) => {
                             })
                         }
 
-                        league.rosters
-                            .filter(r2 => roster.user_id !== r2.user_id
-                                && parseInt(r2.user_id) > 0
-                                && !userLeaguemateData.find(uld => uld.userUserId === roster.user_id
-                                    && uld.leaguemateUserId === r2.user_id)
-                            )
-                            .map(lmRoster => {
-                                userLeaguemateData.push({
-                                    userUserId: roster.user_id,
-                                    leaguemateUserId: lmRoster.user_id
-                                })
-
-                            })
                     })
             })
 
@@ -378,7 +373,7 @@ exports.leaguemates = async (app) => {
                 updateOnDuplicate: ["name", "avatar", "settings", "scoring_settings", "roster_positions",
                     "rosters", "drafts", (state.display_week > 0 && state.display_week < 19 ? `matchups_${state.display_week}` : ''), "updatedAt"]
             })
-            await db.sequelize.model('userLeaguemates').bulkCreate(userLeaguemateData, { ignoreDuplicates: true })
+
             await db.sequelize.model('userLeagues').bulkCreate(userLeagueData, { ignoreDuplicates: true })
         }
 
