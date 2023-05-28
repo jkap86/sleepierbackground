@@ -123,7 +123,7 @@ exports.trades = async (app) => {
 
                 try {
                     transactions_league.data
-                        .filter(t => t.type === 'trade' && t.status_updated < new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+                        .filter(t => t.type === 'trade' && t.status_updated > new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
                         .map(transaction => {
                             const draft_order = league.dataValues.drafts.find(d => d.draft_order && d.status !== 'complete')?.draft_order
 
