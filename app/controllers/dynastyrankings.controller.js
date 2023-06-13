@@ -2,8 +2,11 @@
 const db = require("../models");
 const DynastyRankings = db.dynastyrankings;
 const axios = require('../api/axiosInstance');
-
-
+const fs = require('fs');
+const oneqb_dynasty = require('../../fc_values_oneqb_dynasty.json');
+const sf_dynasty = require('../../fc_values_sf_dynasty.json');
+const oneqb_redraft = require('../../fc_values_oneqb_redraft.json');
+const sf_redraft = require('../../fc_values_sf_redraft.json');
 
 const matchPlayer = (player, stateAllPlayers) => {
     const matchTeam = (team) => {
@@ -67,17 +70,109 @@ exports.updateDaily = async (app) => {
         console.log(`Beginning daily rankings update at ${new Date()}`)
 
         const stateAllPlayers = app.get('allplayers')
-        const ktc = await axios.post('https://keeptradecut.com/dynasty-rankings/history')
+
+        let ktc;
+        try {
+            ktc = await axios.post('https://keeptradecut.com/dynasty-rankings/history')
+        } catch (err) {
+            console.log(err)
+        }
+
+        let fc_sf_dynasty
+        try {
+            fc_sf_dynasty = await axios.get(`https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=1`)
+        } catch (err) {
+            console.log(err)
+        }
+
+        let fc_sf_redraft
+        try {
+            fc_sf_redraft = await axios.get(`https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=2&numTeams=12&ppr=1`)
+        } catch (err) {
+            console.log(err)
+        }
+
+        let fc_oneqb_dynasty
+        try {
+            fc_oneqb_dynasty = await axios.get(`https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=1&numTeams=12&ppr=1`)
+        } catch (err) {
+            console.log(err)
+        }
+
+        let fc_oneqb_redraft
+        try {
+            fc_oneqb_redraft = await axios.get(`https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1`)
+        } catch (err) {
+            console.log(err)
+        }
 
         const daily_values = {}
 
-        ktc.data.map(ktc_player => {
+        ktc.data.forEach(ktc_player => {
             const sleeper_id = matchPlayer(ktc_player, stateAllPlayers)
+
+            const oneqb_dynasty_fc = fc_oneqb_dynasty.data
+                .find(p => p.player.sleeperId === sleeper_id)
+                ?.value
+
+            const sf_dynasty_fc = fc_sf_dynasty.data
+                .find(p => p.player.sleeperId === sleeper_id)
+                ?.value
+
+            const oneqb_redraft_fc = fc_oneqb_redraft.data
+                .find(p => p.player.sleeperId === sleeper_id)
+                ?.value
+
+            const sf_redraft_fc = fc_sf_redraft.data
+                .find(p => p.player.sleeperId === sleeper_id)
+                ?.value
+
             daily_values[sleeper_id] = {
                 oneqb: ktc_player.oneQBValues.value,
-                sf: ktc_player.superflexValues.value
+                sf: ktc_player.superflexValues.value,
+                oneqb_dynasty_fc: oneqb_dynasty_fc,
+                sf_dynasty_fc: sf_dynasty_fc,
+                oneqb_redraft_fc: oneqb_redraft_fc,
+                sf_redraft_fc: sf_redraft_fc
             }
         })
+
+        Array.from(
+            new Set(
+                ...fc_oneqb_dynasty.data.map(p => p.player.sleeperId),
+                ...fc_oneqb_redraft.data.map(p => p.player.sleeperId),
+                ...fc_sf_dynasty.data.map(p => p.player.sleeperId),
+                ...fc_sf_redraft.data.map(p => p.player.sleeperId)
+            )
+        )
+            .filter(player_id =>
+                !Object.keys(daily_values).includes(player_id)
+            )
+            .forEach(player_id => {
+                const oneqb_dynasty_fc = fc_oneqb_dynasty.data
+                    .find(p => p.player.sleeperId === player_id)
+                    ?.value
+
+                const sf_dynasty_fc = fc_sf_dynasty.data
+                    .find(p => p.player.sleeperId === player_id)
+                    ?.value
+
+                const oneqb_redraft_fc = fc_oneqb_redraft.data
+                    .find(p => p.player.sleeperId === player_id)
+                    ?.value
+
+                const sf_redraft_fc = fc_sf_redraft.data
+                    .find(p => p.player.sleeperId === player_id)
+                    ?.value
+
+                daily_values[player_id] = {
+                    oneqb_dynasty_fc: oneqb_dynasty_fc,
+                    sf_dynasty_fc: sf_dynasty_fc,
+                    oneqb_redraft_fc: oneqb_redraft_fc,
+                    sf_redraft_fc: sf_redraft_fc
+                }
+            })
+
 
         try {
             await DynastyRankings.upsert({
@@ -108,4 +203,157 @@ exports.updateDaily = async (app) => {
         }, 1 * 60 * 60 * 1000)
 
     }, 10000)
+}
+
+
+exports.values = async (app) => {
+    app.set('syncing', true)
+
+    const type1 = 'sf'
+    const type2 = 'dynasty'
+
+    const current_values = await axios.get(`https://api.fantasycalc.com/values/current?isDynasty=${type2 === 'dynasty' ? 'true' : 'false'}&numQbs=${type1 === 'sf' ? '2' : '1'}&numTeams=12&ppr=1`)
+
+    const player_ids = current_values.data.sort((a, b) => parseInt(a.value) - parseInt(b.value))
+
+    console.log(`Getting FC values for ${player_ids.length} players...`)
+
+    setTimeout(async () => {
+
+        const fc_values = {};
+
+        const players_retry = []
+
+        for (const player of player_ids) {
+
+            console.log(`Getting FC values for player ${player.player.name}...`)
+
+            let sf
+
+            try {
+                sf = await axios.get(`https://api.fantasycalc.com/trades/implied/${player.player.id}?isDynasty=${type2 === 'dynasty' ? 'true' : 'false'}&numQbs=${type1 === 'sf' ? '2' : '1'}`)
+
+                fc_values[player.player.sleeperId.includes("P") ? player.player.name : player.player.sleeperId] = {
+                    sleeperId: player.player.sleeperId,
+                    name: player.player.name,
+                    [`${type1}_${type2}`]: sf?.data?.historicalValues || [],
+                }
+            } catch (error) {
+                players_retry.push(player)
+                console.log(`Error getting player ${player.player.name}`)
+            }
+        }
+
+        for (const player of players_retry) {
+
+            console.log(`RETRY Getting FC values for player ${player.player.name}...`)
+
+            let sf
+
+            try {
+                sf = await axios.get(`https://api.fantasycalc.com/trades/implied/${player.player.id}?isDynasty=${type2 === 'dynasty' ? 'true' : 'false'}&numQbs=${type1 === 'sf' ? '2' : '1'}`)
+
+                fc_values[player.player.sleeperId.includes("P") ? player.player.name : player.player.sleeperId] = {
+                    sleeperId: player.player.sleeperId,
+                    name: player.player.name,
+                    [`${type1}_${type2}`]: sf?.data?.historicalValues || [],
+                }
+            } catch (error) {
+                players_retry.push(player)
+                console.log(`RETRY Error getting player ${player.player.name}`)
+            }
+        }
+
+        fs.writeFile(`fc_values_${type1}_${type2}.json`, JSON.stringify(fc_values), (err) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            console.log('Data written to fc_values.json successfully...')
+        })
+    }, 3000)
+}
+
+
+exports.updateWithFC = async (app) => {
+
+    setTimeout(async () => {
+        const updated_values = []
+        const db_values = await DynastyRankings.findAll({})
+
+        db_values
+            .sort((a, b) => new Date(a.dataValues.date) - new Date(b.dataValues.date))
+            .forEach(date => {
+                console.log(`Updating values for ${date.dataValues.date}`)
+
+                const updated_date_values = {}
+
+
+                Object.keys(date.dataValues.values)
+                    .forEach(player_id => {
+                        const oneqb_dynasty_fc = oneqb_dynasty[player_id]
+                            ?.oneqb_dynasty
+                            ?.find(d => new Date(d.date).toLocaleDateString("en-US") === new Date(date.dataValues.date).toLocaleDateString("en-US"))
+                            ?.value
+
+                        const sf_dynasty_fc = sf_dynasty[player_id]
+                            ?.sf_dynasty
+                            ?.find(d => new Date(d.date).toLocaleDateString("en-US") === new Date(date.dataValues.date).toLocaleDateString("en-US"))
+                            ?.value
+
+                        const oneqb_redraft_fc = oneqb_redraft[player_id]
+                            ?.oneqb_redraft
+                            ?.find(d => new Date(d.date).toLocaleDateString("en-US") === new Date(date.dataValues.date).toLocaleDateString("en-US"))
+                            ?.value
+
+                        const sf_redraft_fc = sf_redraft[player_id]
+                            ?.sf_redraft
+                            ?.find(d => new Date(d.date).toLocaleDateString("en-US") === new Date(date.dataValues.date).toLocaleDateString("en-US"))
+                            ?.value
+
+                        updated_date_values[player_id] = {
+                            ...(date.dataValues.values[player_id] || {}),
+                            oneqb_dynasty_fc: oneqb_dynasty_fc,
+                            sf_dynasty_fc: sf_dynasty_fc,
+                            oneqb_redraft_fc: oneqb_redraft_fc,
+                            sf_redraft_fc: sf_redraft_fc,
+                        }
+                    })
+
+                updated_values.push({
+                    date: date.dataValues.date,
+                    values: updated_date_values,
+                    updatedAt: new Date()
+                })
+
+            })
+
+        fs.writeFile(`values_w_fc.json`, JSON.stringify(updated_values), (err) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            console.log('Data written to values_w_fc.json successfully...')
+        })
+    }, 3000)
+}
+
+
+exports.updateDB = async (app) => {
+    const values_w_fc = require('../../values_w_fc.json');
+
+    setTimeout(async () => {
+        try {
+            console.log('Begin Update')
+            await DynastyRankings.bulkCreate(values_w_fc.map(d => {
+                return {
+                    ...d,
+                    date: new Date(d.date)
+                }
+            }), { updateOnDuplicate: ['values', 'updatedAt'] })
+            console.log("UPDATE COMPLETE")
+        } catch (err) {
+            console.log(err)
+        }
+    }, 5000)
 }
