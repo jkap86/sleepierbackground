@@ -2,11 +2,6 @@
 const db = require("../models");
 const DynastyRankings = db.dynastyrankings;
 const axios = require('../api/axiosInstance');
-const fs = require('fs');
-const oneqb_dynasty = require('../../fc_values_oneqb_dynasty.json');
-const sf_dynasty = require('../../fc_values_sf_dynasty.json');
-const oneqb_redraft = require('../../fc_values_oneqb_redraft.json');
-const sf_redraft = require('../../fc_values_sf_redraft.json');
 
 const matchPlayer = (player, stateAllPlayers) => {
     const matchTeam = (team) => {
