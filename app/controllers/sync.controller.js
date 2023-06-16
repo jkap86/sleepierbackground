@@ -36,7 +36,7 @@ exports.boot = async (app) => {
     app.set('state', state.data)
     app.set('allplayers', allplayers)
 
-    app.set('syncing', 'trades')
+    app.set('syncing', 'lm')
 
     app.set('trades_sync_counter', 0)
 
@@ -256,6 +256,7 @@ exports.leaguemates = async (app) => {
             console.log(`Begin Leaguemates Sync at ${new Date()}`)
             app.set('syncing', 'true')
             await updateLeaguemateLeagues(app)
+            await deleteLeaguesWithoutAssociations(app)
             app.set('syncing', 'trades')
             console.log(`Leaguemates Sync completed at ${new Date()}`)
         } else {
@@ -269,6 +270,30 @@ exports.leaguemates = async (app) => {
         }
 
     }, interval)
+
+    const deleteLeaguesWithoutAssociations = async (app) => {
+        try {
+            const associated_league_ids = await db.sequelize.model('userLeagues').findAll({
+                attributes: ['leagueLeagueId'],
+                distinct: true,
+                raw: true
+            })
+
+            const associated_league_ids_unique = Array.from(new Set(associated_league_ids.map(league => league.leagueLeagueId)))
+
+            const deleted = await League.destroy({
+                where: {
+                    league_id: {
+                        [Op.not]: associated_league_ids_unique
+                    }
+                }
+            })
+
+            console.log(`${deleted} Leagues with no associated Users deleted...`)
+        } catch (error) {
+            console.log(error)
+        }
+    }
 
     const updateLeaguemateLeagues = async (app) => {
         const state = app.get('state')
