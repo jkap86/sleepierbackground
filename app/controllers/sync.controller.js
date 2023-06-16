@@ -554,74 +554,84 @@ exports.leaguemates = async (app) => {
             const drafts = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/drafts`)
             const traded_picks = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/traded_picks`)
 
-            let matchups = {};
-            if (display_week > 0 && display_week < 19) {
-                const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${display_week}`)
-                matchups[`matchups_${display_week}`] = matchup_week.data
-
-            }
-            const draft_picks = getDraftPicks(traded_picks.data, rosters.data, users.data, drafts.data, league.data)
-
-            const drafts_array = []
-
-            for (const draft of drafts.data) {
-                drafts_array.push({
-                    draft_id: draft.draft_id,
-                    status: draft.status,
-                    rounds: draft.settings.rounds,
-                    draft_order: draft.draft_order
+            if (league.data === null) {
+                await League.destroy({
+                    where: {
+                        league_id: leagueId
+                    }
                 })
-            }
+
+                console.log(`League ${leagueId} has been deleted...`)
+            } else {
+                let matchups = {};
+                if (display_week > 0 && display_week < 19) {
+                    const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${display_week}`)
+                    matchups[`matchups_${display_week}`] = matchup_week.data
+
+                }
+                const draft_picks = getDraftPicks(traded_picks.data, rosters.data, users.data, drafts.data, league.data)
+
+                const drafts_array = []
+
+                for (const draft of drafts.data) {
+                    drafts_array.push({
+                        draft_id: draft.draft_id,
+                        status: draft.status,
+                        rounds: draft.settings.rounds,
+                        draft_order: draft.draft_order
+                    })
+                }
 
 
-            const rosters_username = rosters.data
-                ?.sort(
-                    (a, b) =>
-                        (b.settings?.wins ?? 0) - (a.settings?.wins ?? 0)
-                        || (b.settings?.fpts ?? 0) - (a.settings?.fpts ?? 0)
-                );
+                const rosters_username = rosters.data
+                    ?.sort(
+                        (a, b) =>
+                            (b.settings?.wins ?? 0) - (a.settings?.wins ?? 0)
+                            || (b.settings?.fpts ?? 0) - (a.settings?.fpts ?? 0)
+                    );
 
-            for (const [index, roster] of rosters_username.entries()) {
-                const user = users.data.find(u => u.user_id === roster.owner_id);
-                const co_owners = roster.co_owners?.map(co => {
-                    const co_user = users.data.find(u => u.user_id === co);
-                    return {
-                        user_id: co_user?.user_id,
-                        username: co_user?.display_name,
-                        avatar: co_user?.avatar
+                for (const [index, roster] of rosters_username.entries()) {
+                    const user = users.data.find(u => u.user_id === roster.owner_id);
+                    const co_owners = roster.co_owners?.map(co => {
+                        const co_user = users.data.find(u => u.user_id === co);
+                        return {
+                            user_id: co_user?.user_id,
+                            username: co_user?.display_name,
+                            avatar: co_user?.avatar
+                        };
+                    });
+                    rosters_username[index] = {
+                        rank: index + 1,
+                        taxi: roster.taxi,
+                        starters: roster.starters,
+                        settings: roster.settings,
+                        roster_id: roster.roster_id,
+                        reserve: roster.reserve,
+                        players: roster.players,
+                        user_id: roster.owner_id,
+                        username: user?.display_name,
+                        avatar: user?.avatar,
+                        co_owners,
+                        draft_picks: draft_picks[roster.roster_id]
                     };
-                });
-                rosters_username[index] = {
-                    rank: index + 1,
-                    taxi: roster.taxi,
-                    starters: roster.starters,
-                    settings: roster.settings,
-                    roster_id: roster.roster_id,
-                    reserve: roster.reserve,
-                    players: roster.players,
-                    user_id: roster.owner_id,
-                    username: user?.display_name,
-                    avatar: user?.avatar,
-                    co_owners,
-                    draft_picks: draft_picks[roster.roster_id]
-                };
-            }
+                }
 
-            const { type, best_ball } = league.data.settings || {}
-            const settings = { type, best_ball }
+                const { type, best_ball } = league.data.settings || {}
+                const settings = { type, best_ball }
 
-            return {
-                league_id: leagueId,
-                name: league.data.name,
-                avatar: league.data.avatar,
-                season: league.data.season,
-                settings: settings,
-                scoring_settings: league.data.scoring_settings,
-                roster_positions: league.data.roster_positions,
-                rosters: rosters_username,
-                drafts: drafts_array,
-                ...matchups,
-                updatedAt: Date.now()
+                return {
+                    league_id: leagueId,
+                    name: league.data.name,
+                    avatar: league.data.avatar,
+                    season: league.data.season,
+                    settings: settings,
+                    scoring_settings: league.data.scoring_settings,
+                    roster_positions: league.data.roster_positions,
+                    rosters: rosters_username,
+                    drafts: drafts_array,
+                    ...matchups,
+                    updatedAt: Date.now()
+                }
             }
         } catch (error) {
             console.error(`Error processing league ${leagueId}: ${error.message}`);
