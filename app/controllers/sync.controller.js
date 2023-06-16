@@ -443,6 +443,26 @@ exports.leaguemates = async (app) => {
             for (const lm of users_to_update_batch) {
                 try {
                     const lm_leagues = await axios.get(`http://api.sleeper.app/v1/user/${lm}/leagues/nfl/${state.league_season}`)
+
+                    const deleted = await db.sequelize.model('userLeagues').destroy({
+                        where: {
+                            [Op.and]: [
+                                {
+                                    userUserId: lm
+                                },
+                                {
+                                    leagueLeagueId: {
+                                        [Op.not]: lm_leagues.data.map(league => league.league_id)
+                                    }
+                                }
+                            ]
+                        }
+                    })
+
+                    if (deleted > 0) {
+                        console.log(`${deleted} associations deleted for user ${lm}`)
+                    }
+
                     lm_leagues.data.map(league => {
                         let leagues = leaguemate_leagues[league.league_id] || []
                         leagues.push(league.league_id)
