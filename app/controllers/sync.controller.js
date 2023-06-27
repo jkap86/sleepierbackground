@@ -589,12 +589,17 @@ exports.leaguemates = async (app) => {
                 console.log(`League ${leagueId} has been deleted...`)
             } else {
                 let matchups = {};
-                if (display_week > 0 && display_week < 19) {
-                    const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${display_week}`)
+                if (league.data.status === 'in_season') {
+                    const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${Math.max(display_week, 1)}`)
                     matchups[`matchups_${display_week}`] = matchup_week.data
 
                 }
-                const draft_picks = getDraftPicks(traded_picks.data, rosters.data, users.data, drafts.data, league.data)
+                const draft_picks = (
+                    league.data.status === 'in_season'
+                    && league.data.settings.type === 2
+                )
+                    && getDraftPicks(traded_picks.data, rosters.data, users.data, drafts.data, league.data)
+                    || []
 
                 const drafts_array = []
 
