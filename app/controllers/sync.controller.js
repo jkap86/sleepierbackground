@@ -591,7 +591,7 @@ exports.leaguemates = async (app) => {
                 let matchups = {};
                 if (league.data.status === 'in_season') {
                     const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${Math.max(display_week, 1)}`)
-                    matchups[`matchups_${display_week}`] = matchup_week.data
+                    matchups[`matchups_${Math.max(display_week, 1)}`] = matchup_week.data
 
                 }
                 const draft_picks = (
