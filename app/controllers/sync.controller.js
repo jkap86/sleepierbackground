@@ -396,7 +396,7 @@ exports.leaguemates = async (app) => {
             await User.bulkCreate(users, { updateOnDuplicate: ['username', 'avatar'] })
             await League.bulkCreate(leagues_batch, {
                 updateOnDuplicate: ["name", "avatar", "settings", "scoring_settings", "roster_positions",
-                    "rosters", "drafts", (state.display_week > 0 && state.display_week < 19 ? `matchups_${state.display_week}` : ''), "updatedAt"]
+                    "rosters", "drafts", (state.display_week >= 0 && state.display_week < 19 ? `matchups_${Math.max(1, state.display_week)}` : ''), "updatedAt"]
             })
 
             await db.sequelize.model('userLeagues').bulkCreate(userLeagueData, { ignoreDuplicates: true })
