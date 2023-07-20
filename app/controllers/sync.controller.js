@@ -646,8 +646,26 @@ exports.leaguemates = async (app) => {
                     };
                 }
 
-                const { type, best_ball, trade_deadline, waiver_day_of_week, daily_waivers_hour } = league.data.settings || {}
-                const settings = { type, best_ball, trade_deadline, waiver_day_of_week, daily_waivers_hour }
+                const {
+                    type,
+                    best_ball,
+                    trade_deadline,
+                    waiver_day_of_week,
+                    daily_waivers_hour,
+                    league_average_match,
+                    playoff_week_start
+                } = league.data.settings || {}
+
+                const settings = {
+                    type,
+                    best_ball,
+                    trade_deadline,
+                    waiver_day_of_week,
+                    daily_waivers_hour,
+                    league_average_match,
+                    playoff_week_start,
+                    status: league.data.status
+                }
 
                 return {
                     league_id: leagueId,
