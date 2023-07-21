@@ -396,7 +396,7 @@ exports.leaguemates = async (app) => {
             await User.bulkCreate(users, { updateOnDuplicate: ['username', 'avatar'] })
             await League.bulkCreate(leagues_batch, {
                 updateOnDuplicate: ["name", "avatar", "settings", "scoring_settings", "roster_positions",
-                    "rosters", "drafts", (state.display_week >= 0 && state.display_week < 19 ? `matchups_${Math.max(1, state.display_week)}` : ''), "updatedAt"]
+                    "rosters", "drafts", ...Array.from(Array(18).keys()).map(key => `matchups_${key + 1}`), "updatedAt"]
             })
 
             await db.sequelize.model('userLeagues').bulkCreate(userLeagueData, { ignoreDuplicates: true })
@@ -590,8 +590,13 @@ exports.leaguemates = async (app) => {
             } else {
                 let matchups = {};
                 if (league.data.status === 'in_season') {
-                    const matchup_week = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${Math.max(display_week, 1)}`)
-                    matchups[`matchups_${Math.max(display_week, 1)}`] = matchup_week.data
+                    await Promise.all(Array.from(Array(18).keys())
+                        .map(async week => {
+                            const matchup_prev = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${week + 1}`)
+
+                            matchups[`matchups_${week + 1}`] = (league.data.settings.playoff_week_start < 1 || week + 1 < league.data.settings.playoff_week_start) ? matchup_prev.data : []
+
+                        }))
 
                 }
                 const draft_picks = (
