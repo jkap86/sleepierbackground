@@ -332,7 +332,14 @@ exports.leaguemates = async (app) => {
 
         const leagues_to_update = Array.from(new Set([
             ...app.get('leagues_to_update'),
-            ...leagues_user_db.filter(l_db => l_db.updatedAt < cutoff).flatMap(league => league.league_id)
+            ...leagues_user_db
+                .filter(l_db => l_db.updatedAt < cutoff
+                    || (
+                        l_db.settings.status === 'in_season'
+                        && Object.keys(l_db).find(key => key.startsWith('matchups_') && !l_db[key])
+                    )
+                )
+                .flatMap(league => league.league_id)
         ]))
 
         console.log(`${leagues_to_add.length} Leagues to Add... (${app.get('leagues_to_add').length} from previous)`)
