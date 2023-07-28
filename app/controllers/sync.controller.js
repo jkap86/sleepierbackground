@@ -309,11 +309,14 @@ exports.leaguemates = async (app) => {
         if (league_ids.length > 0) {
             try {
                 leagues_user_db = await League.findAll({
+                    order: [['updatedAt', 'ASC']],
+                    limit: 150,
                     where: {
                         league_id: {
                             [Op.in]: league_ids
                         }
-                    }
+                    },
+                    raw: true
                 })
             } catch (error) {
                 console.log(error)
@@ -322,7 +325,7 @@ exports.leaguemates = async (app) => {
             leagues_user_db = []
         }
 
-        leagues_user_db = leagues_user_db.map(league => league.dataValues)
+
 
         const leagues_to_add = Array.from(new Set([
             ...app.get('leagues_to_add'),
@@ -426,6 +429,8 @@ exports.leaguemates = async (app) => {
 
 
             let new_users_to_update = await User.findAll({
+                order: [['updatedAt', 'ASC']],
+                limit: 100,
                 where: {
                     [Op.and]: [
                         {
