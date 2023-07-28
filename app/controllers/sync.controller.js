@@ -299,7 +299,7 @@ exports.leaguemates = async (app) => {
         const state = app.get('state')
         const increment_new = 150;
 
-        const cutoff = new Date(new Date() - (24 * 60 * 60 * 1000))
+        const cutoff = new Date(new Date() - (6 * 60 * 60 * 1000))
 
         const league_ids_dict = await getLeaguemateLeagues(app, state)
         const league_ids = Object.keys(league_ids_dict)
