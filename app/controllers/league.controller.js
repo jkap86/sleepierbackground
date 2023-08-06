@@ -73,24 +73,7 @@ exports.league = async (app) => {
                         }
                     })
 
-                const deleted = await db.sequelize.model('userLeagues').destroy({
-                    where: {
-                        [Op.and]: [
-                            {
-                                userUserId: {
-                                    [Op.not]: league.users.map(user => user.user_id)
-                                }
-                            },
-                            {
-                                leagueLeagueId: league.league_id
-                            }
-                        ]
-                    }
-                })
 
-                if (deleted > 0) {
-                    console.log(`${deleted} associations deleted for League - ${league.name}`)
-                }
             })
 
         console.log({ users: users.length, userLeagueData: userLeagueData.length })
