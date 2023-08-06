@@ -353,7 +353,7 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
             }
         }
     } catch (error) {
-        console.error(`Error processing league ${leagueId}: ${error.message}`);
+        console.error(`Error processing league ${leagueId}: ${error}`);
 
     }
 }
