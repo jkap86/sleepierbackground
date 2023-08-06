@@ -139,6 +139,7 @@ exports.league = async (app) => {
 
     //  await deleteLeaguesWithoutAssociations(app)
 
+    await db.sequelize.close();
     app.set('syncing', 'trades');
     console.log('League Sync Complete')
 }
