@@ -353,6 +353,16 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
             }
         }
     } catch (error) {
+        console.log(error.respons.status)
+        if (error.response?.status === 404) {
+            await League.destroy({
+                where: {
+                    league_id: leagueId
+                }
+            })
+
+            console.log(`League ${leagueId} has been deleted...`)
+        }
         console.error(error);
 
     }
