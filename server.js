@@ -37,10 +37,11 @@ function start() {
 
 
 
-    require('./app/scheduledTasks/sync.routes')(app)
-    require('./app/scheduledTasks/dynastyrankings.routes')(app)
+    //  require('./app/scheduledTasks/sync.routes')(app)
+    //  require('./app/scheduledTasks/dynastyrankings.routes')(app)
 
-
+    require('./app/scheduledTasks/daily.routes')(app);
+    require('./app/scheduledTasks/userLeagues.routes')(app);
 
     app.get('/', (req, res) => {
         res.send('ping')
