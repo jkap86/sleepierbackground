@@ -120,7 +120,7 @@ exports.league = async (app) => {
         }
     }
 
-    //  await deleteLeaguesWithoutAssociations(app)
+    await deleteLeaguesWithoutAssociations(app)
 
 
     app.set('syncing', 'trades');
