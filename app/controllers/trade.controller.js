@@ -171,7 +171,7 @@ exports.trades = async (app) => {
     }
 
     await updateTrades(app)
-    await db.sequelize.close();
+
     app.set('syncing', 'userLeagues')
     console.log('Trade Sync Complete...')
 }
