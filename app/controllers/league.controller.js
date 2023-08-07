@@ -23,7 +23,7 @@ exports.league = async (app) => {
 
     if (league_ids_to_add.length < total_batch_size) {
         let leagues_db = await League.findAll({
-            order: [['updatedAt', 'ASC']],
+            order: [['league_id', 'ASC']],
             limit: total_batch_size - league_ids_to_add.length,
             attributes: ['league_id'],
             raw: true
