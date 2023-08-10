@@ -64,7 +64,7 @@ exports.updateDaily = async (app) => {
 
         console.log(`Beginning daily rankings update at ${new Date()}`)
 
-        const stateAllPlayers = app.get('allplayers')
+        const stateAllPlayers = require('../../allplayers.json');
 
         let ktc;
         try {

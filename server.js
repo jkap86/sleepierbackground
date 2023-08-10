@@ -33,15 +33,15 @@ function start() {
         })
         .catch((err) => {
             console.log("Failed to sync db: " + err.message);
-        })
+        });
 
 
-
-    //  require('./app/scheduledTasks/sync.routes')(app)
-    //  require('./app/scheduledTasks/dynastyrankings.routes')(app)
+    //  require('./app/scheduledTasks/sync.routes')(app) 
 
     require('./app/scheduledTasks/daily.routes')(app);
     require('./app/scheduledTasks/userLeagues.routes')(app);
+    require('./app/scheduledTasks/dynastyrankings.routes')(app)
+
 
     app.get('/', (req, res) => {
         res.send('ping')

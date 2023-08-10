@@ -16,6 +16,12 @@ module.exports = (sequelize, Sequelize) => {
         },
         type: {
             type: Sequelize.STRING
+        },
+        playershares: {
+            type: Sequelize.JSONB
+        },
+        playershares_update: {
+            type: Sequelize.DATE
         }
     }, {
         indexes: [

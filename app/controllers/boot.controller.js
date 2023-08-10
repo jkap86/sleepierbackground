@@ -53,7 +53,7 @@ exports.boot = async (app) => {
     app.set('trades_sync_counter', 0);
 
     if (process.env.DATABASE_URL) {
-        getAllPlayers();
+        await getAllPlayers();
     }
 
     const getState = async () => {
@@ -65,7 +65,7 @@ exports.boot = async (app) => {
         }, 0)
     }
 
-    getState();
+    await getState()
 
 
 }

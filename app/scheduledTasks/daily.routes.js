@@ -8,15 +8,25 @@ module.exports = app => {
 
     const now = new Date();
 
+
+
     let utc = new Date(now);
 
     utc.setUTCHours(8, 0, 0, 0);
 
     const delay = now - utc;
 
-
-    setInterval(() => {
-        boot.boot(app)
-    }, delay)
-
+    if (delay > 0) {
+        setTimeout(() => {
+            setInterval(() => {
+                boot.boot(app)
+            }, 24 * 60 * 60 * 1000)
+        }, delay);
+    } else {
+        setTimeout(() => {
+            setInterval(() => {
+                boot.boot(app)
+            }, 24 * 60 * 60 * 1000)
+        }, delay + (24 * 60 * 60 * 1000));
+    }
 }

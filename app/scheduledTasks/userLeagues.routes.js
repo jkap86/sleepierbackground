@@ -25,4 +25,12 @@ module.exports = app => {
         }
     }, 60 * 1000)
 
+
+    setTimeout(async () => {
+        await user.playershares(app)
+    }, 15000)
+
+    setInterval(async () => {
+        await user.playershares(app)
+    }, 1 * 60 * 1000)
 }

@@ -7,7 +7,7 @@ const Op = db.Sequelize.Op;
 const axios = require('../api/axiosInstance');
 
 exports.league = async (app) => {
-    const total_batch_size = 50;
+    const total_batch_size = 150;
 
     console.log('Beginning League Sync...')
     const state = app.get('state');
@@ -67,8 +67,7 @@ exports.league = async (app) => {
                                 user_id: user.user_id,
                                 username: user.display_name,
                                 avatar: user.avatar,
-                                type: '',
-                                updatedAt: new Date()
+                                type: ''
                             })
                         }
                     })
@@ -96,31 +95,6 @@ exports.league = async (app) => {
         console.log(error)
     }
 
-    const deleteLeaguesWithoutAssociations = async (app) => {
-        try {
-            const associated_league_ids = await db.sequelize.model('userLeagues').findAll({
-                attributes: ['leagueLeagueId'],
-                distinct: true,
-                raw: true
-            })
-
-            const associated_league_ids_unique = Array.from(new Set(associated_league_ids.map(league => league.leagueLeagueId)))
-
-            const deleted = await League.destroy({
-                where: {
-                    league_id: {
-                        [Op.not]: associated_league_ids_unique
-                    }
-                }
-            })
-
-            console.log(`${deleted} Leagues with no associated Users deleted...`)
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-    await deleteLeaguesWithoutAssociations(app)
 
 
     app.set('syncing', 'trades');
@@ -215,27 +189,20 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
 
             if (league.data.status === 'in_season') {
                 if (new_league) {
-                    await Promise.all(Array.from(Array(18).keys())
-                        .map(async week => {
-                            const matchup_prev = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${week + 1}`)
-
-                            matchups[`matchups_${week + 1}`] = (league.data.settings.playoff_week_start < 1 || week + 1 < league.data.settings.playoff_week_start) ? matchup_prev.data : []
-
-                        }))
-                } else {
                     await Promise.all(Array.from(Array(18 - display_week).keys())
                         .map(async week => {
                             const matchup_prev = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${week + 1}`)
 
-                            matchups[`matchups_${week + 1}`] = (league.data.settings.playoff_week_start < 1 || week + 1 < league.data.settings.playoff_week_start) ? matchup_prev.data : []
+                            matchups[`matchups_${week + 1}`] = matchup_prev.data || []
 
                         }))
+                } else if (league.data.settings.playoff_week_start < 1 || display_week < league.data.settings.playoff_week_start) {
+
+                    const matchup_prev = await axios.get(`https://api.sleeper.app/v1/league/${leagueId}/matchups/${display_week}`)
+
+                    matchups[`matchups_${display_week}`] = matchup_prev.data || []
+
                 }
-            } else {
-                Array.from(Array(18).keys())
-                    .forEach(week => {
-                        matchups[`matchups_${week + 1}`] = []
-                    })
             }
 
 
@@ -298,7 +265,8 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
                 waiver_day_of_week,
                 daily_waivers_hour,
                 league_average_match,
-                playoff_week_start
+                playoff_week_start,
+                disable_trades
             } = league.data.settings || {}
 
             const settings = {
@@ -309,6 +277,7 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
                 daily_waivers_hour,
                 league_average_match,
                 playoff_week_start,
+                disable_trades,
                 status: league.data.status
             }
             const users_w_rosters = users.data
@@ -337,7 +306,7 @@ const getLeagueDetails = async (leagueId, display_week, new_league = false) => {
             }
         }
     } catch (error) {
-        console.log(error.response.status)
+
         if (error.response?.status === 404) {
             await League.destroy({
                 where: {

@@ -34,21 +34,14 @@ exports.trades = async (app) => {
         const trades_league = []
         const trades_users = []
 
-        for (let j = 0; j < increment; j += 50) {
-            await Promise.all(leagues_to_update.filter(l => l.dataValues.rosters.find(r => r?.players?.length > 0)).slice(j, j + 50).map(async league => {
+        for (let j = 0; j < increment; j += 25) {
+            await Promise.all(leagues_to_update.filter(l => l.dataValues.rosters.find(r => r?.players?.length > 0)).slice(j, j + 25).map(async league => {
 
-                let transactions_league;
 
-                try {
-                    transactions_league = await axios.get(`https://api.sleeper.app/v1/league/${league.dataValues.league_id}/transactions/${state.season_type === 'regular' ? state.week : 1}`)
-                } catch (error) {
-                    console.log(error)
-                    transactions_league = {
-                        data: []
-                    }
-                }
 
                 try {
+                    let transactions_league = await axios.get(`https://api.sleeper.app/v1/league/${league.dataValues.league_id}/transactions/${state.season_type === 'regular' ? state.week : 1}`);
+
                     transactions_league.data
                         .filter(t => t.type === 'trade' && t.status_updated > new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
                         .map(transaction => {
@@ -140,7 +133,7 @@ exports.trades = async (app) => {
                         })
 
                 } catch (error) {
-                    console.log(error)
+                    console.log(error.message)
                 }
 
 
