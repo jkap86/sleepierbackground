@@ -32,5 +32,5 @@ module.exports = app => {
 
     setInterval(async () => {
         await user.playershares(app)
-    }, 1 * 60 * 1000)
+    }, .5 * 60 * 1000)
 }
