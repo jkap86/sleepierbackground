@@ -34,7 +34,7 @@ exports.user = async (app) => {
                     },
                     {
                         updatedAt: {
-                            [Op.lt]: new Date(new Date() - 25 * 60 * 1000)
+                            [Op.lt]: new Date(new Date() - 6 * 60 * 60 * 1000)
                         }
                     }
 
@@ -108,8 +108,8 @@ exports.playershares = async (app) => {
     console.log('Beginning playershares sync...')
     try {
         const users_to_update = await User.findAll({
-            order: [['playershares_update', 'ASC']],
-            limit: 25,
+            order: [['playershares_update', 'ASC NULLS FIRST']],
+            limit: 50,
             attributes: ['user_id', 'playershares_update'],
             where: {
                 [Op.and]: [
