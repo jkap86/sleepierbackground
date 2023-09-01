@@ -68,7 +68,7 @@ exports.updateDaily = async (app) => {
 
         let ktc;
         try {
-            ktc = await axios.post('https://keeptradecut.com/dynasty-rankings/history')
+            ktc = await axios.post('https://keeptradecut.com/dynasty-rankings/histories')
         } catch (err) {
             console.log(err)
         }
